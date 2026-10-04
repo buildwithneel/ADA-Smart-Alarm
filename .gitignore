@@ -1,0 +1,70 @@
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+*.local
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Node / Frontend ---
+node_modules/
+dist/
+build/
+.npm
+.eslintcache
+# Preserve package-lock.json for reproducible npm ci in Docker & GitHub Actions
+!package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# --- Python / Backend ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+celerybeat-schedule
+celerybeat-schedule.db
+
+# --- Database & Storage ---
+postgres_data/
+postgres_prod_data/
+redis_data/
+redis_prod_data/
+
+# --- Environment & Sensitive Credentials ---
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*serviceAccount*.json
+firebase-credentials.json
+google-credentials.json
+
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+

@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  /* Premium Dark Theme Color Palette */
+  --color-brand-50: hsl(240, 100%, 98%);
+  --color-brand-100: hsl(242, 100%, 95%);
+  --color-brand-200: hsl(243, 100%, 90%);
+  --color-brand-300: hsl(244, 98%, 80%);
+  --color-brand-400: hsl(244, 96%, 68%);
+  --color-brand-500: hsl(245, 94%, 60%);
+  --color-brand-600: hsl(245, 84%, 50%);
+  --color-brand-700: hsl(245, 84%, 43%);
+  --color-brand-800: hsl(244, 82%, 36%);
+  --color-brand-900: hsl(244, 76%, 30%);
+  --color-brand-950: hsl(244, 76%, 15%);
+
+  --color-slate-925: #0a0e1a;
+  --color-slate-950: #030712;
+
+  /* Fonts */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Custom Transitions */
+  --transition-bezier: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-50 font-sans selection:bg-brand-500/30 antialiased;
+  }
+}
+
+/* Glassmorphism utility classes */
+.glass-panel {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
+}
+
+.glass-card {
+  @apply bg-slate-900/40 backdrop-blur-lg border border-slate-800/40 shadow-2xl rounded-2xl transition-all duration-300;
+}
+
+.glass-input {
+  @apply bg-slate-900/50 border border-slate-800/80 rounded-xl focus:border-brand-500/80 focus:ring-1 focus:ring-brand-500/80 outline-none transition-all duration-200 px-4 py-3;
+}
+
+/* Custom interactive gradients */
+.gradient-brand {
+  @apply bg-gradient-to-tr from-brand-600 via-indigo-600 to-violet-500;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-brand-400 via-indigo-300 to-violet-400 bg-clip-text text-transparent;
+}
+
+.gradient-border-glow {
+  position: relative;
+}
+
+.gradient-border-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(to right, var(--color-brand-500), var(--color-violet-500));
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border-glow:hover::before {
+  opacity: 0.8;
+}
