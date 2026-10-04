@@ -284,6 +284,6 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## 📄 License & Attribution
 
-Developed with ❤️ by [Neel Patel](https://github.com/buildwithneel) as an open, resilient smart alarm platform.
+Developed with ❤️ by [Neel Agrawal](https://github.com/buildwithneel) as an open, resilient smart alarm platform.
 
 Licensed under the [MIT License](LICENSE).
