@@ -13,12 +13,6 @@ from sqlalchemy.pool import StaticPool
 # Force testing environment
 os.environ["ENVIRONMENT"] = "testing"
 
-from app.api.deps import get_db
-from app.main import app as fastapi_app
-from app.models.base import Base
-from app.models.preference import UserPreference
-from app.models.user import User
-
 # In-memory SQLite database isolated per test session
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
@@ -38,10 +32,16 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Patch app.core.database to share the static test engine and session factory
+# Patch app.core.database to share the static test engine and session factory before importing app
 import app.core.database
 app.core.database.engine = engine
 app.core.database.SessionLocal = TestingSessionLocal
+
+from app.api.deps import get_db
+from app.main import app as fastapi_app
+from app.models.base import Base
+from app.models.preference import UserPreference
+from app.models.user import User
 
 
 @pytest.fixture(scope="session", autouse=True)

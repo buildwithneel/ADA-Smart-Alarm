@@ -4,7 +4,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from app.core.database import SessionLocal
+import app.core.database
+
+
+def SessionLocal():
+    return app.core.database.SessionLocal()
 from app.repositories.alarm_repository import AlarmRepository
 from app.repositories.destination_repository import DestinationRepository
 from app.services.alarm_recalculation_service import AlarmRecalculationService

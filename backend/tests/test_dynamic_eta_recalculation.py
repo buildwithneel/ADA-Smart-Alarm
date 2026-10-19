@@ -440,17 +440,17 @@ async def test_step8_lock_conflict_skips_concurrent_run(client: TestClient, char
     dest_repo = DestinationRepository(db_session)
     recalc_svc = AlarmRecalculationService(alarm_repo, dest_repo)
 
-    # Manually hold lock
-    lock_key = f"ada:recalc:lock:{alarm_id}"
-    from app.services.alarm_recalculation_service import _in_memory_recalc_locks
-    _in_memory_recalc_locks[lock_key] = 9999999999.0
+    # Manually hold lock (works both with real Redis in CI and with in-memory fallback)
+    recalc_svc._release_recalculation_lock(alarm_id)
+    lock_acquired = recalc_svc._acquire_recalculation_lock(alarm_id)
+    assert lock_acquired is True
 
     try:
         result = await recalc_svc.recalculate_alarm(alarm_id=alarm_id, force=True)
         assert result.status == "skipped"
         assert result.change_reason == "LOCK_CONFLICT"
     finally:
-        _in_memory_recalc_locks.pop(lock_key, None)
+        recalc_svc._release_recalculation_lock(alarm_id)
 
 
 # ===========================================================================

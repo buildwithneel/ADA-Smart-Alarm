@@ -8,7 +8,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+import app.core.database
 from app.core.events import AlarmEvent, AlarmEventType, register_alarm_event_listener
 from app.models.alarm import AlarmStatus
 from app.repositories.alarm_repository import AlarmRepository
@@ -28,7 +28,7 @@ def handle_alarm_domain_event(event: AlarmEvent, db_session: Optional[Session] =
     should_close = False
     db = db_session
     if db is None:
-        db = SessionLocal()
+        db = app.core.database.SessionLocal()
         should_close = True
 
     try:
