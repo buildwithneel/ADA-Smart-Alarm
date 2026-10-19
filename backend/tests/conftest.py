@@ -38,6 +38,11 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Patch app.core.database to share the static test engine and session factory
+import app.core.database
+app.core.database.engine = engine
+app.core.database.SessionLocal = TestingSessionLocal
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():

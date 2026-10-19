@@ -153,9 +153,9 @@ async def test_step8_deterministic_traffic_increase(client: TestClient, charusat
     assert updated.schedule_change_reason == "TRAFFIC_INCREASE"
 
     tz = ZoneInfo("Asia/Kolkata")
-    new_wake = updated.calculated_wake_time.astimezone(tz)
-    new_leave = updated.calculated_leave_time.astimezone(tz)
-    new_arr = updated.planned_arrival_time.astimezone(tz)
+    new_wake = AlarmRecalculationService._ensure_tz(updated.calculated_wake_time, tz)
+    new_leave = AlarmRecalculationService._ensure_tz(updated.calculated_leave_time, tz)
+    new_arr = AlarmRecalculationService._ensure_tz(updated.planned_arrival_time, tz)
 
     assert new_wake.hour == 7 and new_wake.minute == 25
     assert new_leave.hour == 7 and new_leave.minute == 55
@@ -329,7 +329,7 @@ async def test_step8_impossible_update_past_wake_time(client: TestClient, charus
     assert updated.status == AlarmStatus.URGENT_SCHEDULE_CHANGE
     assert updated.schedule_change_reason == "URGENT_SCHEDULE_CHANGE"
     # Wake time must not be in the past (capped to simulated_now = 07:40)
-    wake_aware = updated.calculated_wake_time.astimezone(tz)
+    wake_aware = AlarmRecalculationService._ensure_tz(updated.calculated_wake_time, tz)
     assert wake_aware.hour == 7 and wake_aware.minute == 40
 
 
