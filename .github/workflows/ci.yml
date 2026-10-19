@@ -63,7 +63,7 @@ jobs:
       - name: Run Pytest Test Suite
         env:
           ENVIRONMENT: test
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test_secret_key_minimum_32_characters_for_ci_suite
         run: pytest -v --maxfail=1 --disable-warnings
