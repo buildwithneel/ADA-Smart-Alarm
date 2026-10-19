@@ -6,8 +6,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies based on lockfile
-COPY package*.json ./
-RUN npm ci --silent
+COPY package*.json .npmrc* ./
+RUN npm ci --legacy-peer-deps --silent
 
 # Copy frontend source files
 COPY . .

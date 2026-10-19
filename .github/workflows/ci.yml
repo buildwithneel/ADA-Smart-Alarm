@@ -58,6 +58,7 @@ jobs:
       - name: Test Alembic Migrations
         env:
           DATABASE_URL: postgresql://ada_admin:test_password_12345@localhost:5432/ada_test
+          PYTHONPATH: .
         run: alembic upgrade head
 
       - name: Run Pytest Test Suite
@@ -66,6 +67,7 @@ jobs:
           DATABASE_URL: "sqlite:///:memory:"
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test_secret_key_minimum_32_characters_for_ci_suite
+          PYTHONPATH: .
         run: pytest -v --maxfail=1 --disable-warnings
 
   frontend-validation:
@@ -87,7 +89,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install NPM Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: TypeScript Strict Typecheck
         run: npx tsc --noEmit
