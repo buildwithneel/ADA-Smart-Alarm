@@ -27,15 +27,9 @@ def upgrade() -> None:
         unique=False
     )
 
-    # 2. Composite index on alarms(user_id, status) for filtered user alarm lists
-    op.create_index(
-        'ix_alarms_user_id_status',
-        'alarms',
-        ['user_id', 'status'],
-        unique=False
-    )
+    # Note: ix_alarms_user_id_status was already created in migration f27a4b8c9d10 (step 7)
 
-    # 3. Composite index on alarms(enabled, calculated_wake_time) for scheduler sorting
+    # 2. Composite index on alarms(enabled, calculated_wake_time) for scheduler sorting
     op.create_index(
         'ix_alarms_enabled_wake_time',
         'alarms',
@@ -43,7 +37,7 @@ def upgrade() -> None:
         unique=False
     )
 
-    # 4. Composite index on destinations(user_id, is_favorite) for fast favorite lookups
+    # 3. Composite index on destinations(user_id, is_favorite) for fast favorite lookups
     op.create_index(
         'ix_destinations_user_id_favorite',
         'destinations',
@@ -51,7 +45,7 @@ def upgrade() -> None:
         unique=False
     )
 
-    # 5. Composite index on alarm_drafts(user_id, status)
+    # 4. Composite index on alarm_drafts(user_id, status)
     op.create_index(
         'ix_alarm_drafts_user_id_status',
         'alarm_drafts',
@@ -64,5 +58,4 @@ def downgrade() -> None:
     op.drop_index('ix_alarm_drafts_user_id_status', table_name='alarm_drafts')
     op.drop_index('ix_destinations_user_id_favorite', table_name='destinations')
     op.drop_index('ix_alarms_enabled_wake_time', table_name='alarms')
-    op.drop_index('ix_alarms_user_id_status', table_name='alarms')
     op.drop_index('ix_alarms_calculated_leave_time', table_name='alarms')
