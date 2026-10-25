@@ -575,9 +575,14 @@ def test_step9_timezone_midnight_and_previous_day_wake(db_session, test_user, te
     created = service.schedule_alarm_notifications(alarm)
     wake_notif = next(n for n in created if n.type == NotificationType.ALARM_WAKE)
 
-    assert wake_notif.scheduled_for.astimezone(tz).date() == today
-    assert wake_notif.scheduled_for.astimezone(tz).hour == 22
-    assert wake_notif.scheduled_for.astimezone(tz).minute == 50
+    scheduled = (
+        wake_notif.scheduled_for.replace(tzinfo=tz)
+        if wake_notif.scheduled_for.tzinfo is None
+        else wake_notif.scheduled_for.astimezone(tz)
+    )
+    assert scheduled.date() == today
+    assert scheduled.hour == 22
+    assert scheduled.minute == 50
 
 
 # =============================================================================
