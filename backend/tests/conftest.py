@@ -55,9 +55,18 @@ def setup_test_db():
 @pytest.fixture(autouse=True)
 def test_environment_cleanup():
     from app.services.weather.weather_service import clear_weather_cache
+    from app.core.redis import get_redis_client
     clear_weather_cache()
+    try:
+        get_redis_client().flushdb()
+    except Exception:
+        pass
     yield
     clear_weather_cache()
+    try:
+        get_redis_client().flushdb()
+    except Exception:
+        pass
     with engine.connect() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(table.delete())

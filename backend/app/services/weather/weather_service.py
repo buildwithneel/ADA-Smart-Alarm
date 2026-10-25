@@ -24,8 +24,15 @@ _in_memory_weather_cache: dict[str, tuple[float, str]] = {}
 
 
 def clear_weather_cache() -> None:
-    """Utility to clear the local in-memory weather fallback cache."""
+    """Utility to clear the local in-memory weather fallback cache and Redis weather cache."""
     _in_memory_weather_cache.clear()
+    try:
+        redis_client = get_redis_client()
+        keys = redis_client.keys("weather:*")
+        if keys:
+            redis_client.delete(*keys)
+    except Exception:
+        pass
 
 
 @dataclass
