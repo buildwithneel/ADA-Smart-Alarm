@@ -63,7 +63,6 @@ class AssistantConversation(Base, TimestampMixin):
     drafts: Mapped[list["AlarmDraft"]] = relationship(
         "AlarmDraft",
         back_populates="conversation",
-        cascade="all, delete-orphan",
     )
 
 

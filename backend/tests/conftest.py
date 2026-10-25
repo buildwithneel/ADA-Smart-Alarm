@@ -39,6 +39,7 @@ app.core.database.SessionLocal = TestingSessionLocal
 
 from app.api.deps import get_db
 from app.main import app as fastapi_app
+import app.models  # noqa: F401 - Register all models for Base.metadata
 from app.models.base import Base
 from app.models.preference import UserPreference
 from app.models.user import User
@@ -57,19 +58,17 @@ def test_environment_cleanup():
     clear_weather_cache()
     yield
     clear_weather_cache()
+    with engine.connect() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(table.delete())
+        conn.commit()
 
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
-
+    session = TestingSessionLocal()
     yield session
-
     session.close()
-    transaction.rollback()
-    connection.close()
 
 
 @pytest.fixture
