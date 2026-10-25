@@ -42,12 +42,15 @@
 
 ### Milestone 5: Jetpack Compose Design System & User-Facing Screens (UI/UX Ultra Pro Max)
 - **Goal**: Deliver a polished, modern, calm Material 3 design system and user-facing screens for alarm creation, editing, and listing.
-- **Status**: NEXT UP
+- **Status**: COMPLETE & VERIFIED
 - **Deliverables**:
-  - Home Dashboard with Next Alarm spotlight, live countdown, toggle switch, and upcoming list.
-  - Alarm Creator / Editor with dynamic calculations preview, time pickers, prep and safety buffer sliders.
-  - Destination search and saved destinations list.
-  - Settings and Permissions status screen.
+  - Home Dashboard with Next Alarm spotlight, live countdown, toggle switch, and upcoming list from Room.
+  - Alarm Creator / Editor with dynamic calculations preview, date & time pickers, prep and safety buffer sliders.
+  - Destination search, quick-select chips, and saved destinations list.
+  - Settings and Permissions status screen (exact alarm, notifications, theme).
+  - 47/47 unit tests passing across calculations, scheduler, recovery, state transitions, and all UI ViewModels.
+  - `assembleDebug` APK build verified.
+
 
 ### Milestone 6: Backend Integration, Firebase Authentication & API Sync
 - **Goal**: Integrate native Android app with existing FastAPI backend and Firebase Auth.

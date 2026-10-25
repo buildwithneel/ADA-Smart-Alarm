@@ -1,27 +1,83 @@
 package com.thinkx.ada
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import com.thinkx.ada.ui.main.MainScreen
+import com.thinkx.ada.ui.alarm.CreateEditAlarmScreen
+import com.thinkx.ada.ui.alarm.CreateEditAlarmViewModel
+import com.thinkx.ada.ui.destinations.DestinationsScreen
+import com.thinkx.ada.ui.destinations.DestinationsViewModel
+import com.thinkx.ada.ui.home.HomeScreen
+import com.thinkx.ada.ui.home.HomeViewModel
+import com.thinkx.ada.ui.settings.SettingsScreen
+import com.thinkx.ada.ui.settings.SettingsViewModel
 
 @Composable
 fun MainNavigation() {
-  val backStack = rememberNavBackStack(Main)
+    val context = LocalContext.current
+    val app = context.applicationContext as AdaApplication
+    val backStack = rememberNavBackStack(Main)
 
-  NavDisplay(
-    backStack = backStack,
-    onBack = { backStack.removeLastOrNull() },
-    entryProvider =
-      entryProvider {
-        entry<Main> {
-          MainScreen(onItemClick = { navKey -> backStack.add(navKey) })
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryProvider = entryProvider {
+            entry<Main> {
+                HomeScreen(
+                    viewModel = viewModel(
+                        factory = HomeViewModel.Factory(
+                            alarmRepository = app.alarmRepository,
+                            alarmScheduler = app.alarmScheduler
+                        )
+                    ),
+                    onCreateAlarmClick = { backStack.add(CreateEditAlarm()) },
+                    onEditAlarmClick = { alarmId -> backStack.add(CreateEditAlarm(alarmId)) },
+                    onDestinationsClick = { backStack.add(Destinations) },
+                    onSettingsClick = { backStack.add(Settings) }
+                )
+            }
+
+            entry<CreateEditAlarm> { key ->
+                CreateEditAlarmScreen(
+                    viewModel = viewModel(
+                        key = key.alarmId ?: "new_alarm",
+                        factory = CreateEditAlarmViewModel.Factory(
+                            alarmId = key.alarmId,
+                            alarmRepository = app.alarmRepository,
+                            destinationRepository = app.destinationRepository,
+                            userPreferencesRepository = app.userPreferencesRepository,
+                            alarmScheduler = app.alarmScheduler
+                        )
+                    ),
+                    onNavigateBack = { backStack.removeLastOrNull() }
+                )
+            }
+
+            entry<Destinations> {
+                DestinationsScreen(
+                    viewModel = viewModel(
+                        factory = DestinationsViewModel.Factory(
+                            destinationRepository = app.destinationRepository
+                        )
+                    ),
+                    onNavigateBack = { backStack.removeLastOrNull() }
+                )
+            }
+
+            entry<Settings> {
+                SettingsScreen(
+                    viewModel = viewModel(
+                        factory = SettingsViewModel.Factory(
+                            userPreferencesRepository = app.userPreferencesRepository,
+                            alarmScheduler = app.alarmScheduler
+                        )
+                    ),
+                    onNavigateBack = { backStack.removeLastOrNull() }
+                )
+            }
         }
-      },
-  )
+    )
 }

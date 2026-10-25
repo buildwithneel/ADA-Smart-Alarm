@@ -1,17 +1,17 @@
 # Project Memory & Current State
 
 ## Current Position
-- **Active Milestone**: Milestone 4 completed; advancing to Milestone 5 (Jetpack Compose UI Screens with UI/UX Ultra Pro Max).
+- **Active Milestone**: Milestone 5 completed; advancing to Milestone 6 (Backend Integration, Firebase Authentication & API Sync).
 - **Verified Deliverables**:
-  - Room SQLite database (`AdaDatabase`) with `AlarmEntity`, `DestinationEntity`, and DAOs compiled via KSP.
-  - DataStore preference repository (`UserPreferencesRepository`).
-  - `AlarmScheduler` interface and `AndroidAlarmScheduler` implementation with `AlarmManager.setAlarmClock()`.
-  - Android BroadcastReceivers: `AlarmReceiver`, `BootCompletedReceiver`, `TimeChangeReceiver`.
-  - `AlarmPlaybackManager` (audio focus, looping USAGE_ALARM, vibration waveform).
-  - `AlarmService` foreground service with full-screen intent to `AlarmActivity`.
-  - Full-screen `AlarmActivity` with Compose UI.
-  - 21 unit tests passing across calculation, scheduling, recovery, and state transitions.
-  - `assembleDebug` APK build verified.
+  - Jetpack Compose + Material 3 UI screens implemented:
+    - Home Dashboard (`HomeScreen`, `HomeViewModel`): Next Alarm spotlight card with countdown, upcoming alarms list from Room Flow, toggle controls synchronized with `AlarmScheduler`, exact-alarm permission banner.
+    - Create/Edit Alarm (`CreateEditAlarmScreen`, `CreateEditAlarmViewModel`): Destination selection with saved/recent quick chips, arrival date/time pickers, duration sliders, live calculation preview card matching `AdaCalculationEngine`, validation preventing past schedules, permission denial & failure handling.
+    - Destination Management (`DestinationsScreen`, `DestinationsViewModel`): Saved destinations and recent destinations list, add/edit modal, delete confirmation.
+    - Settings (`SettingsScreen`, `SettingsViewModel`): Default preparation, safety buffer, snooze durations, Theme preference (System/Dark/Light), vibration switch, exact alarm and notification permission status & settings shortcuts.
+  - `AdaApplication` application class managing repository and scheduler singletons.
+  - Complete 47 unit tests passing across calculations, scheduler, recovery, state transitions, and all 4 ViewModels.
+  - `assembleDebug` APK build verified (`app-debug.apk`).
+
 
 ## Decision Log
 - **D-01 (Architecture)**: Android app lives in `android/` directory in repository root, keeping backend and web frontend intact.

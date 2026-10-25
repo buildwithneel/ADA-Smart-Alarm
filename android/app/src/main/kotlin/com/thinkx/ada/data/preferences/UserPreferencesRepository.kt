@@ -27,7 +27,20 @@ data class UserPreferences(
     val hasCompletedOnboarding: Boolean = false
 )
 
-class UserPreferencesRepository(private val context: Context) {
+interface UserPreferencesRepository {
+    val userPreferencesFlow: Flow<UserPreferences>
+    suspend fun updateDefaults(prepMinutes: Int, safetyBufferMinutes: Int, snoozeMinutes: Int)
+    suspend fun setOnboardingCompleted(completed: Boolean)
+    suspend fun setVibrationEnabled(enabled: Boolean)
+    suspend fun setDarkMode(isDark: Boolean?)
+
+    companion object {
+        operator fun invoke(context: Context): UserPreferencesRepository =
+            UserPreferencesRepositoryImpl(context)
+    }
+}
+
+class UserPreferencesRepositoryImpl(private val context: Context) : UserPreferencesRepository {
 
     private val dataStore = context.adaPreferencesDataStore
 
@@ -42,7 +55,7 @@ class UserPreferencesRepository(private val context: Context) {
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
     }
 
-    val userPreferencesFlow: Flow<UserPreferences> = dataStore.data
+    override val userPreferencesFlow: Flow<UserPreferences> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
                 emit(emptyPreferences())
@@ -63,7 +76,7 @@ class UserPreferencesRepository(private val context: Context) {
             )
         }
 
-    suspend fun updateDefaults(prepMinutes: Int, safetyBufferMinutes: Int, snoozeMinutes: Int) {
+    override suspend fun updateDefaults(prepMinutes: Int, safetyBufferMinutes: Int, snoozeMinutes: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEFAULT_PREP_MINUTES] = prepMinutes
             preferences[PreferencesKeys.DEFAULT_SAFETY_BUFFER_MINUTES] = safetyBufferMinutes
@@ -71,15 +84,25 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
-    suspend fun setOnboardingCompleted(completed: Boolean) {
+    override suspend fun setOnboardingCompleted(completed: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
         }
     }
 
-    suspend fun setVibrationEnabled(enabled: Boolean) {
+    override suspend fun setVibrationEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.VIBRATION_ENABLED] = enabled
+        }
+    }
+
+    override suspend fun setDarkMode(isDark: Boolean?) {
+        dataStore.edit { preferences ->
+            if (isDark == null) {
+                preferences.remove(PreferencesKeys.IS_DARK_MODE)
+            } else {
+                preferences[PreferencesKeys.IS_DARK_MODE] = isDark
+            }
         }
     }
 }
