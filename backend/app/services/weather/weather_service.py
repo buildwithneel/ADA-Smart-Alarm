@@ -28,11 +28,15 @@ def clear_weather_cache() -> None:
     _in_memory_weather_cache.clear()
     try:
         redis_client = get_redis_client()
-        keys = redis_client.keys("weather:*")
+        keys = redis_client.keys("ada:weather:*")
         if keys:
             redis_client.delete(*keys)
-    except Exception:
-        pass
+        keys_legacy = redis_client.keys("weather:*")
+        if keys_legacy:
+            redis_client.delete(*keys_legacy)
+    except Exception as exc:
+        logger.debug(f"Could not clear Redis weather cache: {exc}")
+
 
 
 @dataclass

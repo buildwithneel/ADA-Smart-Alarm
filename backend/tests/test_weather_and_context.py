@@ -40,7 +40,7 @@ from app.services.weather.base import (
     WeatherData,
     WeatherProvider,
 )
-from app.services.weather.weather_service import JourneyWeatherSummary, WeatherService
+from app.services.weather.weather_service import JourneyWeatherSummary, WeatherService, clear_weather_cache
 from app.worker.tasks import evaluate_upcoming_weather_context, sync_active_calendars
 
 
@@ -115,6 +115,7 @@ class MockDeterministicWeatherProvider(WeatherProvider):
         self._is_severe = is_severe
         self._alerts = alerts or []
         self._retrieved_at = retrieved_at or datetime.now(timezone.utc)
+        clear_weather_cache()
 
     @property
     def provider_name(self) -> str:
