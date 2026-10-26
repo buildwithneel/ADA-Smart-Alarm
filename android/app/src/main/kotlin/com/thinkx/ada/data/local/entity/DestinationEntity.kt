@@ -17,6 +17,8 @@ data class DestinationEntity(
     val longitude: Double,
     val isSaved: Boolean = true,
     val isRecent: Boolean = false,
+    val serverId: String? = null,
+    val isSynced: Boolean = false,
     val lastUsedAtEpochMs: Long = System.currentTimeMillis(),
     val createdAtEpochMs: Long = System.currentTimeMillis()
 )

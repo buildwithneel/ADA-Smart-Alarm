@@ -32,4 +32,13 @@ interface DestinationDao {
 
     @Query("DELETE FROM destinations WHERE id = :id")
     suspend fun deleteDestinationById(id: String)
+
+    @Query("SELECT * FROM destinations WHERE serverId = :serverId LIMIT 1")
+    suspend fun getDestinationByServerId(serverId: String): DestinationEntity?
+
+    @Query("SELECT * FROM destinations WHERE isSynced = 0")
+    suspend fun getUnsyncedDestinations(): List<DestinationEntity>
+
+    @Query("UPDATE destinations SET serverId = :serverId, isSynced = 1 WHERE id = :id")
+    suspend fun updateDestinationSyncStatus(id: String, serverId: String)
 }

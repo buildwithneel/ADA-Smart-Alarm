@@ -16,6 +16,16 @@
     <!-- System recovery permissions -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Location and Foreground Service Location permissions -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
+    <!-- Network permissions for Firebase & FastAPI backend communication -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:name=".AdaApplication"
         android:allowBackup="true"
@@ -24,6 +34,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:windowSoftInputMode="adjustResize"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.ADASmartAlarm">
 
         <activity
@@ -53,6 +64,17 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="ADA Smart Alarm time-critical ringing audio and vibration delivery" />
         </service>
+
+        <!-- Foreground Journey Location Tracking & Dynamic ETA Service -->
+        <service
+            android:name=".journey.service.JourneyTrackingService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- Journey Scheduled Tracking Start Receiver -->
+        <receiver
+            android:name=".journey.receiver.JourneyStartReceiver"
+            android:exported="false" />
 
         <!-- Primary Alarm Delivery Receiver -->
         <receiver

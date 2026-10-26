@@ -10,6 +10,7 @@ import com.thinkx.ada.data.local.entity.DestinationEntity
 import com.thinkx.ada.data.preferences.UserPreferencesRepository
 import com.thinkx.ada.data.repository.AlarmRepository
 import com.thinkx.ada.data.repository.DestinationRepository
+import com.thinkx.ada.data.sync.AlarmSyncRepository
 import com.thinkx.ada.domain.engine.AdaCalculationEngine
 import com.thinkx.ada.domain.model.CalculationInput
 import com.thinkx.ada.domain.model.CalculationResult
@@ -55,7 +56,9 @@ class CreateEditAlarmViewModel(
     private val alarmRepository: AlarmRepository,
     private val destinationRepository: DestinationRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val alarmScheduler: AlarmScheduler
+    private val alarmScheduler: AlarmScheduler,
+    private val syncRepository: AlarmSyncRepository? = null,
+    private val journeyScheduler: com.thinkx.ada.journey.scheduler.JourneyScheduler? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateEditAlarmUiState(alarmId = alarmId, isEditMode = alarmId != null))
@@ -252,6 +255,10 @@ class CreateEditAlarmViewModel(
                 recommendedLeaveEpochMs = recommendedLeaveEpochMs,
                 recommendedWakeEpochMs = recommendedWakeEpochMs,
                 scheduledAlarmEpochMs = scheduledAlarmEpochMs,
+                scheduledDepartureEpochMs = recommendedLeaveEpochMs,
+                trackingLeadMinutes = 15,
+                approachingThresholdMeters = 1000,
+                arrivalThresholdMeters = 100,
                 travelDurationMinutes = state.travelDurationMinutes,
                 preparationDurationMinutes = state.preparationDurationMinutes,
                 safetyBufferMinutes = state.safetyBufferMinutes,
@@ -282,11 +289,25 @@ class CreateEditAlarmViewModel(
             // Schedule with AlarmManager
             when (val scheduleResult = alarmScheduler.schedule(alarmEntity)) {
                 is ScheduleResult.Success -> {
+                    // Schedule journey tracking start attempt (e.g. 15 min prior)
+                    journeyScheduler?.scheduleTrackingStart(alarmEntity)
+
                     // Persist to Room
                     if (state.isEditMode) {
                         alarmRepository.updateAlarm(alarmEntity)
                     } else {
                         alarmRepository.saveAlarm(alarmEntity)
+                    }
+
+                    // Trigger asynchronous background push (non-blocking)
+                    syncRepository?.let { sync ->
+                        launch {
+                            try {
+                                sync.pushLocalAlarm(alarmEntity)
+                            } catch (_: Exception) {
+                                // Room and native AlarmManager own the schedule
+                            }
+                        }
                     }
 
                     // Save destination as recent
@@ -353,7 +374,9 @@ class CreateEditAlarmViewModel(
         private val alarmRepository: AlarmRepository,
         private val destinationRepository: DestinationRepository,
         private val userPreferencesRepository: UserPreferencesRepository,
-        private val alarmScheduler: AlarmScheduler
+        private val alarmScheduler: AlarmScheduler,
+        private val syncRepository: AlarmSyncRepository? = null,
+        private val journeyScheduler: com.thinkx.ada.journey.scheduler.JourneyScheduler? = null
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -362,7 +385,9 @@ class CreateEditAlarmViewModel(
                 alarmRepository = alarmRepository,
                 destinationRepository = destinationRepository,
                 userPreferencesRepository = userPreferencesRepository,
-                alarmScheduler = alarmScheduler
+                alarmScheduler = alarmScheduler,
+                syncRepository = syncRepository,
+                journeyScheduler = journeyScheduler
             ) as T
         }
     }

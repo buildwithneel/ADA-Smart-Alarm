@@ -6,6 +6,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.thinkx.ada.auth.ui.AuthScreen
+import com.thinkx.ada.auth.ui.AuthViewModel
 import com.thinkx.ada.ui.alarm.CreateEditAlarmScreen
 import com.thinkx.ada.ui.alarm.CreateEditAlarmViewModel
 import com.thinkx.ada.ui.destinations.DestinationsScreen
@@ -30,13 +32,15 @@ fun MainNavigation() {
                     viewModel = viewModel(
                         factory = HomeViewModel.Factory(
                             alarmRepository = app.alarmRepository,
-                            alarmScheduler = app.alarmScheduler
+                            alarmScheduler = app.alarmScheduler,
+                            syncRepository = app.syncRepository
                         )
                     ),
                     onCreateAlarmClick = { backStack.add(CreateEditAlarm()) },
                     onEditAlarmClick = { alarmId -> backStack.add(CreateEditAlarm(alarmId)) },
                     onDestinationsClick = { backStack.add(Destinations) },
-                    onSettingsClick = { backStack.add(Settings) }
+                    onSettingsClick = { backStack.add(Settings) },
+                    onAccountClick = { backStack.add(Auth) }
                 )
             }
 
@@ -49,7 +53,9 @@ fun MainNavigation() {
                             alarmRepository = app.alarmRepository,
                             destinationRepository = app.destinationRepository,
                             userPreferencesRepository = app.userPreferencesRepository,
-                            alarmScheduler = app.alarmScheduler
+                            alarmScheduler = app.alarmScheduler,
+                            syncRepository = app.syncRepository,
+                            journeyScheduler = app.journeyScheduler
                         )
                     ),
                     onNavigateBack = { backStack.removeLastOrNull() }
@@ -75,6 +81,19 @@ fun MainNavigation() {
                             alarmScheduler = app.alarmScheduler
                         )
                     ),
+                    onNavigateBack = { backStack.removeLastOrNull() },
+                    onAccountClick = { backStack.add(Auth) }
+                )
+            }
+
+            entry<Auth> {
+                AuthScreen(
+                    viewModel = viewModel(
+                        factory = AuthViewModel.Factory(
+                            authRepository = app.authRepository
+                        )
+                    ),
+                    onAuthSuccess = { backStack.removeLastOrNull() },
                     onNavigateBack = { backStack.removeLastOrNull() }
                 )
             }

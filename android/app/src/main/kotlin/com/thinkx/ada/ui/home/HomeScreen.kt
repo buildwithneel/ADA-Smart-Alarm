@@ -77,6 +77,7 @@ fun HomeScreen(
     onEditAlarmClick: (String) -> Unit,
     onDestinationsClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAccountClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -169,6 +170,9 @@ fun HomeScreen(
                     IconButton(onClick = onSettingsClick) {
                         Text(text = "⚙️", fontSize = 20.sp)
                     }
+                    IconButton(onClick = onAccountClick) {
+                        Text(text = "👤", fontSize = 20.sp)
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
@@ -218,8 +222,9 @@ fun HomeScreen(
                 // Spotlight: Next Active Alarm
                 uiState.nextAlarm?.let { nextAlarm ->
                     item {
+                        val headerLabel = if (uiState.activeJourney != null) "ACTIVE JOURNEY TRACKING" else "NEXT SCHEDULED JOURNEY"
                         Text(
-                            text = "NEXT ALARM",
+                            text = headerLabel,
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
@@ -229,7 +234,9 @@ fun HomeScreen(
                         NextAlarmSpotlightCard(
                             alarm = nextAlarm,
                             onToggle = { isEnabled -> viewModel.toggleAlarm(nextAlarm, isEnabled) },
-                            onClick = { onEditAlarmClick(nextAlarm.id) }
+                            onClick = { onEditAlarmClick(nextAlarm.id) },
+                            onStartTracking = { viewModel.startTracking(nextAlarm, context) },
+                            onStopTracking = { viewModel.stopTracking(context) }
                         )
                     }
                 }
@@ -317,19 +324,32 @@ fun ExactAlarmPermissionBanner(onOpenSettings: () -> Unit) {
 fun NextAlarmSpotlightCard(
     alarm: AlarmEntity,
     onToggle: (Boolean) -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onStartTracking: () -> Unit = {},
+    onStopTracking: () -> Unit = {}
 ) {
+    val isTracking = alarm.status in setOf(
+        AlarmEntity.STATUS_ACTIVE_TRACKING,
+        AlarmEntity.STATUS_TRACKING_DEGRADED,
+        AlarmEntity.STATUS_RECALCULATING,
+        AlarmEntity.STATUS_APPROACHING
+    )
+
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            containerColor = if (isTracking) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            } else {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            }
         ),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            // Header Row: Destination & Countdown Badge
+            // Header Row: Destination & Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -337,60 +357,74 @@ fun NextAlarmSpotlightCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = alarm.destinationName,
+                        text = alarm.title.ifBlank { "Trip to ${alarm.destinationName}" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = alarm.destinationAddress,
+                        text = "To: ${alarm.destinationName} (${alarm.destinationAddress})",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                val (badgeText, badgeColor) = when (alarm.status) {
+                    AlarmEntity.STATUS_ACTIVE_TRACKING -> "🟢 LIVE TRACKING" to MaterialTheme.colorScheme.primary
+                    AlarmEntity.STATUS_APPROACHING -> "🔔 APPROACHING" to MaterialTheme.colorScheme.error
+                    AlarmEntity.STATUS_RECALCULATING -> "🔄 RECALCULATING" to MaterialTheme.colorScheme.tertiary
+                    AlarmEntity.STATUS_TRACKING_DEGRADED -> "🟡 GPS DEGRADED" to MaterialTheme.colorScheme.error
+                    AlarmEntity.STATUS_ARRIVED -> "🏁 ARRIVED" to MaterialTheme.colorScheme.primary
+                    else -> DateTimeUtils.formatCountdown(alarm.scheduledDepartureEpochMs) to MaterialTheme.colorScheme.secondary
+                }
+
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary
+                    color = badgeColor
                 ) {
                     Text(
-                        text = DateTimeUtils.formatCountdown(alarm.scheduledAlarmEpochMs),
+                        text = badgeText,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Central: Big Wake Time & Toggle Switch
+            // Central: Dynamic ETA / Predicted Arrival & Switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "WAKE UP AT",
+                        text = if (isTracking) "CURRENT ESTIMATED ARRIVAL (ETA)" else "ESTIMATED ARRIVAL (ETA)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
                     )
+                    val displayEtaEpochMs = alarm.currentEtaEpochMs ?: alarm.plannedArrivalEpochMs
                     Text(
-                        text = DateTimeUtils.formatTime(alarm.recommendedWakeEpochMs),
+                        text = DateTimeUtils.formatTime(displayEtaEpochMs),
                         style = MaterialTheme.typography.displayLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.ExtraBold
                     )
-                    Text(
-                        text = DateTimeUtils.formatDateShort(alarm.requiredArrivalEpochMs),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (alarm.isTrafficAware) "🚗 Live Traffic (${alarm.etaSource})" else "⏱️ Fallback Estimate",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (alarm.isTrafficAware) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
 
                 Switch(
@@ -403,23 +437,65 @@ fun NextAlarmSpotlightCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Calculation milestones breakdown
+            // Milestone & Tracking telemetry metrics
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 MilestoneItem(
-                    label = "Leave At",
-                    time = DateTimeUtils.formatTime(alarm.recommendedLeaveEpochMs)
+                    label = "Scheduled Departure",
+                    time = DateTimeUtils.formatTime(alarm.scheduledDepartureEpochMs)
                 )
-                MilestoneItem(
-                    label = "Planned Arrival",
-                    time = DateTimeUtils.formatTime(alarm.plannedArrivalEpochMs)
-                )
-                MilestoneItem(
-                    label = "Required By",
-                    time = DateTimeUtils.formatTime(alarm.requiredArrivalEpochMs)
-                )
+                if (alarm.remainingDistanceMeters != null) {
+                    MilestoneItem(
+                        label = "Distance Left",
+                        time = "%.1f km".format(alarm.remainingDistanceMeters / 1000.0)
+                    )
+                } else {
+                    MilestoneItem(
+                        label = "Est. Travel",
+                        time = "${alarm.travelDurationMinutes} min"
+                    )
+                }
+                if (alarm.remainingDurationSeconds != null) {
+                    MilestoneItem(
+                        label = "Duration Left",
+                        time = "${alarm.remainingDurationSeconds / 60} min"
+                    )
+                } else {
+                    MilestoneItem(
+                        label = "Monitoring Lead",
+                        time = "${alarm.trackingLeadMinutes}m prior"
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Tracking Control Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                if (isTracking) {
+                    FilledTonalButton(
+                        onClick = onStopTracking,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Stop Tracking")
+                    }
+                } else {
+                    FilledTonalButton(
+                        onClick = onStartTracking,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Start Tracking Now")
+                    }
+                }
             }
         }
     }

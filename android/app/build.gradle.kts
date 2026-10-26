@@ -14,12 +14,16 @@ android {
     targetSdk = 35
     versionCode = 1
     versionName = "1.0"
+    buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/api/v1/\"")
+    buildConfigField("String", "FIREBASE_PROJECT_ID", "\"ada-dynamic-alarm\"")
   }
 
   buildTypes {
     release {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      buildConfigField("String", "API_BASE_URL", "\"https://api.ada-alarm.app/api/v1/\"")
+      buildConfigField("String", "FIREBASE_PROJECT_ID", "\"ada-dynamic-alarm\"")
     }
   }
   compileOptions {
@@ -29,7 +33,7 @@ android {
   buildFeatures {
     compose = true
     aidl = false
-    buildConfig = false
+    buildConfig = true
     shaders = false
   }
 
@@ -92,5 +96,18 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   ksp(libs.androidx.room.compiler)
   implementation(libs.androidx.datastore.preferences)
+
+  // Firebase
+  val firebaseBom = platform(libs.firebase.bom)
+  implementation(firebaseBom)
+  implementation(libs.firebase.auth)
+  implementation(libs.play.services.auth)
+
+  // Networking: Retrofit & OkHttp
+  implementation(libs.retrofit.core)
+  implementation(libs.retrofit.converter.kotlinx)
+  implementation(libs.okhttp.core)
+  implementation(libs.okhttp.logging)
+  implementation(libs.kotlinx.serialization.json)
 }
 

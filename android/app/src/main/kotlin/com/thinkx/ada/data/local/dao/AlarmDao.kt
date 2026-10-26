@@ -56,4 +56,25 @@ interface AlarmDao {
 
     @Query("UPDATE alarms SET isEnabled = 0, status = 'DISMISSED', isSnoozed = 0, updatedAtEpochMs = :updatedAtEpochMs WHERE id = :id")
     suspend fun dismissOneTimeAlarm(id: String, updatedAtEpochMs: Long)
+
+    @Query("SELECT * FROM alarms WHERE syncStatus = :status")
+    suspend fun getAlarmsBySyncStatus(status: String): List<AlarmEntity>
+
+    @Query("SELECT * FROM alarms WHERE serverId = :serverId LIMIT 1")
+    suspend fun getAlarmByServerId(serverId: String): AlarmEntity?
+
+    @Query("UPDATE alarms SET serverId = :serverId, syncStatus = :syncStatus, lastSyncedEpochMs = :lastSyncedEpochMs WHERE id = :id")
+    suspend fun updateSyncStatus(id: String, serverId: String?, syncStatus: String, lastSyncedEpochMs: Long)
+
+    @Query("UPDATE alarms SET syncStatus = 'PENDING_DELETE', updatedAtEpochMs = :updatedAtEpochMs WHERE id = :id")
+    suspend fun markAlarmForDeletion(id: String, updatedAtEpochMs: Long)
+
+    @Query("SELECT COUNT(*) FROM alarms WHERE syncStatus != 'SYNCED'")
+    fun getPendingSyncCountFlow(): Flow<Int>
+
+    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND status IN ('ACTIVE_TRACKING', 'TRACKING_DEGRADED', 'RECALCULATING', 'APPROACHING') LIMIT 1")
+    suspend fun getActiveTrackingJourney(): AlarmEntity?
+
+    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND status IN ('ACTIVE_TRACKING', 'TRACKING_DEGRADED', 'RECALCULATING', 'APPROACHING') LIMIT 1")
+    fun getActiveTrackingJourneyFlow(): Flow<AlarmEntity?>
 }

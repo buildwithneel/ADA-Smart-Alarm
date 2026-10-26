@@ -7,4 +7,5 @@ import kotlinx.serialization.Serializable
 @Serializable data class CreateEditAlarm(val alarmId: String? = null) : NavKey
 @Serializable data object Destinations : NavKey
 @Serializable data object Settings : NavKey
+@Serializable data object Auth : NavKey
 

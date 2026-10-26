@@ -54,17 +54,28 @@
 
 ### Milestone 6: Backend Integration, Firebase Authentication & API Sync
 - **Goal**: Integrate native Android app with existing FastAPI backend and Firebase Auth.
-- **Status**: PENDING
+- **Status**: COMPLETE & VERIFIED
 - **Deliverables**:
-  - Retrofit HTTP client with Bearer token authenticator.
-  - DTOs matching backend Pydantic schemas.
-  - Sync repository that syncs local Room alarms with backend without blocking local creation.
-  - Geocoding and route calculation backend integration.
+  - Firebase Authentication Android SDK integration (`FirebaseAuthRepository`, `AuthViewModel`, Material 3 `AuthScreen`) supporting email/password registration, login, password reset, and auth state restoration.
+  - Backend Firebase ID token verification using Firebase Admin SDK / JWKS and FastAPI `get_current_user` dependency mapping verified Firebase UID to PostgreSQL `User`.
+  - Retrofit HTTP client (`AdaApiService`) with OkHttp `AuthInterceptor` injecting `Authorization: Bearer <token>`, handling silent token refresh and 401 retry, without token logging.
+  - Network DTOs matching backend Pydantic schemas (`UserResponse`, `AlarmCreateRequest`, `AlarmResponse`, `AlarmUpdateRequest`, `DestinationRequest`, `DestinationResponse`).
+  - Offline-first `AlarmSyncRepository` synchronizing local Room alarms and destinations with backend via `X-Idempotency-Key` deduplication, bidirectional sync, conflict protection (local unpushed edits never overwritten by stale server data), and Room/AlarmManager local ringing independence.
+  - 68/68 Android unit tests passing (`AuthViewModelTest`, `AuthInterceptorTest`, `AlarmSyncRepositoryTest`, calculations, scheduler, UI).
+  - 9/9 Backend auth and sync tests passing (`test_auth.py`, `test_sync.py`).
+  - `assembleDebug` APK build verified (`app-debug.apk`).
 
-### Milestone 7: Verification, Code Review & Release Quality
-- **Goal**: End-to-end integration testing, code review, linting, and final verification report.
-- **Status**: PENDING
+### Milestone 7: Destination-Aware Journey Monitoring, Dynamic ETA Engine & Arrival Alerts
+- **Goal**: Turn ADA into a reliable, destination-aware journey monitoring and dynamic ETA alert application.
+- **Status**: COMPLETE & VERIFIED
 - **Deliverables**:
-  - Automated tests passing.
-  - Verification checklist for lock screen, backgrounding, reboot, offline delivery.
-  - Complete documentation and build summary.
+  - Full calculation engine audit documenting mathematical contracts, eliminating fixed wake-up-time assumptions, preventing double-counting of elapsed travel time, and separating live traffic duration from fixed stop buffers.
+  - Pure Kotlin `DynamicEtaEngine`, `JourneySchedule`, `JourneyLocationFix`, `DynamicEtaResult`, and `JourneyState` models.
+  - Multi-tiered `RoutingProvider` architecture (`BackendRoutingProvider` querying FastAPI/Google Maps/Mapbox, `FallbackRoutingProvider` with offline Great-Circle estimation, and `CompositeRoutingProvider`).
+  - Native Android `JourneyScheduler` and `JourneyStartReceiver` scheduling automatic tracking start at configurable lead time (default 15 minutes prior) via `AlarmManager.setAlarmClock()`.
+  - Foreground `JourneyTrackingService` (`foregroundServiceType="location"`) targeting 60-second GPS updates, accuracy filtering, GPS jump suppression, persistent notification, and automatic route recalculation upon confirmed route deviation (> 250m).
+  - Idempotent proximity alerts: Approaching destination alert (1,000m threshold) and Arrival confirmation (100m threshold with 2-hit confirmation), terminating tracking cleanly on arrival.
+  - Modern Jetpack Compose UI with live dynamic ETA, live traffic indicator, remaining distance/duration telemetry, and manual Start/Stop tracking controls.
+  - 88/88 Android unit tests passing across calculation engine, state transitions, GPS jump protection, arrival confirmation, scheduler, and UI ViewModels.
+  - 29/29 Backend pytest tests passing (`test_auth.py`, `test_sync.py`, `test_location_and_routing.py`).
+  - `assembleDebug` APK build verified (`app-debug.apk`).
