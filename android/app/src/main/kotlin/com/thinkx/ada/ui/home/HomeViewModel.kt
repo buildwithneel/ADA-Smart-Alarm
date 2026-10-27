@@ -29,7 +29,8 @@ data class HomeUiState(
 class HomeViewModel(
     private val alarmRepository: AlarmRepository,
     private val alarmScheduler: AlarmScheduler,
-    private val syncRepository: AlarmSyncRepository? = null
+    private val syncRepository: AlarmSyncRepository? = null,
+    private val journeyScheduler: com.thinkx.ada.journey.scheduler.JourneyScheduler? = null
 ) : ViewModel() {
 
     private val userMessageFlow = MutableStateFlow<String?>(null)
@@ -105,9 +106,10 @@ class HomeViewModel(
                 alarmRepository.setAlarmStatus(alarm.id, AlarmEntity.STATUS_SCHEDULED)
 
                 // Synchronize with native scheduler
-                when (val result = alarmScheduler.schedule(alarm.copy(isEnabled = true, status = AlarmEntity.STATUS_SCHEDULED))) {
+                val enabledAlarm = alarm.copy(isEnabled = true, status = AlarmEntity.STATUS_SCHEDULED)
+                when (val result = alarmScheduler.schedule(enabledAlarm)) {
                     is ScheduleResult.Success -> {
-                        // Successfully scheduled
+                        journeyScheduler?.scheduleTrackingStart(enabledAlarm)
                     }
                     is ScheduleResult.PermissionDenied -> {
                         alarmRepository.setAlarmEnabled(alarm.id, false)
@@ -125,6 +127,7 @@ class HomeViewModel(
                 }
             } else {
                 alarmScheduler.cancel(alarm.id)
+                journeyScheduler?.cancelTrackingStart(alarm.id)
                 alarmRepository.setAlarmEnabled(alarm.id, false)
                 alarmRepository.setAlarmStatus(alarm.id, AlarmEntity.STATUS_CANCELLED)
             }
@@ -134,6 +137,7 @@ class HomeViewModel(
     fun deleteAlarm(alarm: AlarmEntity) {
         viewModelScope.launch {
             alarmScheduler.cancel(alarm.id)
+            journeyScheduler?.cancelTrackingStart(alarm.id)
             if (syncRepository != null) {
                 syncRepository.deleteRemoteAlarm(alarm.id)
             } else {
@@ -188,11 +192,12 @@ class HomeViewModel(
     class Factory(
         private val alarmRepository: AlarmRepository,
         private val alarmScheduler: AlarmScheduler,
-        private val syncRepository: AlarmSyncRepository? = null
+        private val syncRepository: AlarmSyncRepository? = null,
+        private val journeyScheduler: com.thinkx.ada.journey.scheduler.JourneyScheduler? = null
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return HomeViewModel(alarmRepository, alarmScheduler, syncRepository) as T
+            return HomeViewModel(alarmRepository, alarmScheduler, syncRepository, journeyScheduler) as T
         }
     }
 }

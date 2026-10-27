@@ -72,9 +72,9 @@ interface AlarmDao {
     @Query("SELECT COUNT(*) FROM alarms WHERE syncStatus != 'SYNCED'")
     fun getPendingSyncCountFlow(): Flow<Int>
 
-    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND status IN ('ACTIVE_TRACKING', 'TRACKING_DEGRADED', 'RECALCULATING', 'APPROACHING') LIMIT 1")
+    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND status IN ('TRACKING_PENDING', 'ACTIVE_TRACKING', 'TRACKING_DEGRADED', 'RECALCULATING', 'APPROACHING') LIMIT 1")
     suspend fun getActiveTrackingJourney(): AlarmEntity?
 
-    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND status IN ('ACTIVE_TRACKING', 'TRACKING_DEGRADED', 'RECALCULATING', 'APPROACHING') LIMIT 1")
+    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND status IN ('TRACKING_PENDING', 'ACTIVE_TRACKING', 'TRACKING_DEGRADED', 'RECALCULATING', 'APPROACHING') LIMIT 1")
     fun getActiveTrackingJourneyFlow(): Flow<AlarmEntity?>
 }

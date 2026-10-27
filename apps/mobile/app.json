@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "ADA Smart Alarm",
+    "slug": "ada-smart-alarm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.thinkx.ada.mobile",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
+        "NSLocationWhenInUseUsageDescription": "ADA uses your location while planning journeys to calculate live commute times, find destinations, and preview departure schedules.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ADA requires background location during active journey tracking to monitor your route progress, update ETA dynamically, and trigger approaching and arrival alerts even when the device is locked.",
+        "NSLocationAlwaysUsageDescription": "ADA requires continuous location tracking during your active journey to alert you before your destination.",
+        "NSCameraUsageDescription": "ADA does not require camera access."
+      }
+    },
+    "android": {
+      "package": "com.thinkx.ada.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow ADA to access your location in the background for active destination tracking.",
+          "locationWhenInUsePermission": "Allow ADA to access your location while using the app.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#3B82F6",
+          "sounds": ["./assets/alarm.wav"]
+        }
+      ],
+      "expo-secure-store"
+    ]
+  }
+}

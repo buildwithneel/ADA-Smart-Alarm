@@ -196,6 +196,7 @@ class GoogleMapsProvider(MapProviderInterface):
                     )
                 )
 
+            has_traffic = "duration_in_traffic" in leg
             return RouteResult(
                 origin={"latitude": origin_lat, "longitude": origin_lng},
                 destination={"latitude": dest_lat, "longitude": dest_lng},
@@ -204,6 +205,7 @@ class GoogleMapsProvider(MapProviderInterface):
                 traffic_duration_seconds=traffic_sec,
                 route_geometry=route.get("overview_polyline", {}).get("points", ""),
                 provider=self.name,
+                is_traffic_aware=has_traffic,
                 timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 travel_mode=mode.value,
                 summary=RouteSummary(
@@ -335,6 +337,7 @@ class GoogleMapsProvider(MapProviderInterface):
             traffic_duration_seconds=traffic_duration_sec,
             route_geometry=polyline,
             provider=self.name,
+            is_traffic_aware=False,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             travel_mode=mode_val,
             summary=RouteSummary(

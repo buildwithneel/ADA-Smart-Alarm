@@ -14,6 +14,7 @@ class AlarmRecoveryManagerTest {
 
     private lateinit var repository: FakeAlarmRepository
     private lateinit var scheduler: FakeAlarmScheduler
+    private lateinit var journeyScheduler: com.thinkx.ada.journey.FakeJourneyScheduler
     private lateinit var recoveryManager: AlarmRecoveryManager
 
     private val nowEpochMs = 1700000000000L
@@ -25,7 +26,10 @@ class AlarmRecoveryManagerTest {
             exactAlarmPermissionGranted = true,
             mockCurrentTimeEpochMs = nowEpochMs
         )
-        recoveryManager = AlarmRecoveryManager(repository, scheduler)
+        journeyScheduler = com.thinkx.ada.journey.FakeJourneyScheduler(
+            exactAlarmPermissionGranted = true
+        )
+        recoveryManager = AlarmRecoveryManager(repository, scheduler, journeyScheduler)
     }
 
     private fun createAlarm(
@@ -113,5 +117,37 @@ class AlarmRecoveryManagerTest {
         val run2 = recoveryManager.rearmAllEligibleAlarms(nowEpochMs)
         assertEquals(2, run2.rearmedCount)
         assertEquals(2, scheduler.scheduledAlarms.size)
+    }
+
+    @Test
+    fun `recovery re-arms journey tracking start for future journeys`() = runBlocking {
+        // Departure in 60 mins, tracking lead 15 mins -> tracking start in 45 mins
+        val futureJourney = createAlarm("journey-future", nowEpochMs + 3600000L).copy(
+            scheduledDepartureEpochMs = nowEpochMs + 3600000L,
+            trackingLeadMinutes = 15
+        )
+        repository.saveAlarm(futureJourney)
+
+        val result = recoveryManager.rearmAllEligibleAlarms(nowEpochMs)
+
+        assertEquals(1, result.rearmedCount)
+        assertTrue("Alarm scheduler has journey", scheduler.scheduledAlarms.containsKey("journey-future"))
+        assertTrue("Journey scheduler has journey", journeyScheduler.scheduledJourneys.containsKey("journey-future"))
+    }
+
+    @Test
+    fun `recovery stops expired active journeys that ran past arrival time by more than 2 hours`() = runBlocking {
+        // Required arrival was 3 hours ago, but was left in ACTIVE_TRACKING
+        val expiredJourney = createAlarm("journey-expired", nowEpochMs - 14400000L).copy(
+            requiredArrivalEpochMs = nowEpochMs - 10800000L, // 3 hours ago
+            status = AlarmEntity.STATUS_ACTIVE_TRACKING
+        )
+        repository.saveAlarm(expiredJourney)
+
+        val result = recoveryManager.rearmAllEligibleAlarms(nowEpochMs)
+
+        assertEquals(1, result.expiredCount)
+        assertEquals(AlarmEntity.STATUS_STOPPED, repository.alarms["journey-expired"]!!.status)
+        assertFalse(repository.alarms["journey-expired"]!!.isEnabled)
     }
 }

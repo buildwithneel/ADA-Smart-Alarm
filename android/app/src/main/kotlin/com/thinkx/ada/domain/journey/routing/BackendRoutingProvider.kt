@@ -24,10 +24,12 @@ class BackendRoutingProvider(
                 )
             )
 
-            val providerName = when (dto.provider.lowercase()) {
-                "google" -> "Google Maps (Live Traffic)"
-                "mapbox" -> "Mapbox (Live Traffic)"
-                else -> dto.provider
+            val isTraffic = dto.isTrafficAware && dto.trafficDurationSeconds > 0
+            val providerName = when {
+                !isTraffic -> "Fallback Simulation (No API key)"
+                dto.provider.equals("google", ignoreCase = true) -> "Google Maps (Live Traffic)"
+                dto.provider.equals("mapbox", ignoreCase = true) -> "Mapbox (Live Traffic)"
+                else -> "${dto.provider} (Live Traffic)"
             }
 
             Result.success(
@@ -37,7 +39,7 @@ class BackendRoutingProvider(
                     trafficDurationSeconds = dto.trafficDurationSeconds,
                     routeGeometry = dto.routeGeometry,
                     providerName = providerName,
-                    isTrafficAware = dto.trafficDurationSeconds > 0,
+                    isTrafficAware = isTraffic,
                     congestionLevel = dto.summary?.congestionLevel
                 )
             )

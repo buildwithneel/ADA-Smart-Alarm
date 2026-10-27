@@ -50,8 +50,34 @@ class JourneyStartReceiver : BroadcastReceiver() {
                     return@launch
                 }
 
-                if (!journey.isEnabled || journey.status == AlarmEntity.STATUS_CANCELLED) {
-                    Log.i(TAG, "Journey $journeyId is disabled or cancelled; skipping tracking")
+                // Check disabled or terminal states (CANCELLED, DISMISSED, ARRIVED, STOPPED, FAILED)
+                val terminalStatuses = setOf(
+                    AlarmEntity.STATUS_CANCELLED,
+                    AlarmEntity.STATUS_DISMISSED,
+                    AlarmEntity.STATUS_ARRIVED,
+                    AlarmEntity.STATUS_STOPPED,
+                    AlarmEntity.STATUS_FAILED
+                )
+                if (!journey.isEnabled || journey.status in terminalStatuses) {
+                    Log.i(TAG, "Journey $journeyId is disabled or in terminal status '${journey.status}'; skipping tracking")
+                    return@launch
+                }
+
+                // Protect against obsolete AlarmManager trigger when departure was rescheduled to a later time
+                val now = System.currentTimeMillis()
+                val expectedStartTime = journey.trackingStartAttemptEpochMs
+                if (expectedStartTime - now > 120_000L) {
+                    Log.w(TAG, "Journey $journeyId scheduled tracking start was moved to later ($expectedStartTime > $now); ignoring obsolete trigger")
+                    return@launch
+                }
+
+                // Prevent starting duplicate tracking if already active
+                if (journey.status in setOf(
+                    AlarmEntity.STATUS_ACTIVE_TRACKING,
+                    AlarmEntity.STATUS_APPROACHING,
+                    AlarmEntity.STATUS_RECALCULATING
+                )) {
+                    Log.i(TAG, "Journey $journeyId is already actively tracking (${journey.status}); skipping duplicate start")
                     return@launch
                 }
 
@@ -67,9 +93,12 @@ class JourneyStartReceiver : BroadcastReceiver() {
 
                 if (!fineLocationGranted && !coarseLocationGranted) {
                     Log.e(TAG, "Location permission missing when starting journey $journeyId. Marking FAILED.")
-                    db.alarmDao().updateAlarmStatus(journeyId, AlarmEntity.STATUS_FAILED, System.currentTimeMillis())
+                    db.alarmDao().updateAlarmStatus(journeyId, AlarmEntity.STATUS_FAILED, now)
                     return@launch
                 }
+
+                // Mark journey status as TRACKING_PENDING prior to foreground launch
+                db.alarmDao().updateAlarmStatus(journeyId, AlarmEntity.STATUS_TRACKING_PENDING, now)
 
                 // Start JourneyTrackingService
                 val serviceIntent = Intent(context, JourneyTrackingService::class.java).apply {

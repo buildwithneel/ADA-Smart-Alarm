@@ -167,5 +167,7 @@ data class RouteResultDto(
     @SerialName("route_geometry")
     val routeGeometry: String = "",
     val provider: String = "google",
+    @SerialName("is_traffic_aware")
+    val isTrafficAware: Boolean = false,
     val summary: RouteSummaryDto? = null
 )

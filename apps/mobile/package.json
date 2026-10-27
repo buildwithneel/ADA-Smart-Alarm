@@ -1,0 +1,23 @@
+{
+  "name": "@ada/mobile",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ada/shared": "*",
+    "axios": "^1.6.8"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.12",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  },
+  "private": true
+}

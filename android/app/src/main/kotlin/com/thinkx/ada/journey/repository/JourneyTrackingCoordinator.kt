@@ -52,6 +52,7 @@ class JourneyTrackingCoordinator(
         val now = nowProvider()
         if (!DynamicEtaEngine.isLocationFixValid(currentFix, currentTimeMs = now)) {
             Log.w(TAG, "Discarded inaccurate or stale GPS fix: accuracy=${currentFix.accuracyMeters}m, age=${now - currentFix.timestampEpochMs}ms")
+            alarmDao.updateAlarmStatus(journey.id, AlarmEntity.STATUS_TRACKING_DEGRADED, now)
             return@withContext TrackingUpdateResult(
                 journeyState = JourneyState.TRACKING_DEGRADED,
                 etaResult = null,
@@ -163,6 +164,8 @@ class JourneyTrackingCoordinator(
             nextStatus = AlarmEntity.STATUS_APPROACHING
             alertEvent = JourneyAlertEvent.APPROACHING_ALERT
             Log.i(TAG, "Approaching destination alert triggered for journey $journeyId (distance: ${remainingDist}m)")
+        } else if (approachingSent && remainingDist <= journey.approachingThresholdMeters) {
+            nextStatus = AlarmEntity.STATUS_APPROACHING
         } else if (isDeviated) {
             nextStatus = AlarmEntity.STATUS_RECALCULATING
         }

@@ -204,6 +204,7 @@ class MapboxProvider(MapProviderInterface):
                 traffic_duration_seconds=traffic_sec,
                 route_geometry=route.get("geometry", ""),
                 provider=self.name,
+                is_traffic_aware=(mode == TravelMode.DRIVING),
                 timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 travel_mode=mode.value,
                 summary=RouteSummary(
@@ -331,6 +332,7 @@ class MapboxProvider(MapProviderInterface):
             traffic_duration_seconds=traffic_duration_sec,
             route_geometry=polyline,
             provider=self.name,
+            is_traffic_aware=False,
             timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             travel_mode=mode_val,
             summary=RouteSummary(

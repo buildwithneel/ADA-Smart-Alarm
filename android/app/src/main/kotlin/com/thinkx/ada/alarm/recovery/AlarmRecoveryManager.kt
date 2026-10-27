@@ -19,7 +19,8 @@ data class RecoveryResult(
 
 class AlarmRecoveryManager(
     private val alarmRepository: AlarmRepository,
-    private val alarmScheduler: AlarmScheduler
+    private val alarmScheduler: AlarmScheduler,
+    private val journeyScheduler: com.thinkx.ada.journey.scheduler.JourneyScheduler? = null
 ) {
 
     companion object {
@@ -29,7 +30,8 @@ class AlarmRecoveryManager(
             val db = AdaDatabase.getInstance(context)
             val repo = AlarmRepositoryImpl(db.alarmDao())
             val scheduler = AndroidAlarmScheduler(context)
-            return AlarmRecoveryManager(repo, scheduler)
+            val journeyScheduler = com.thinkx.ada.journey.scheduler.AndroidJourneyScheduler(context)
+            return AlarmRecoveryManager(repo, scheduler, journeyScheduler)
         }
     }
 
@@ -59,12 +61,32 @@ class AlarmRecoveryManager(
                         Log.e(TAG, "Failed to re-arm alarm ID=${alarm.id}: $result")
                     }
                 }
+
+                // Re-arm journey tracking start if in future
+                if (alarm.trackingStartAttemptEpochMs > nowEpochMs) {
+                    journeyScheduler?.scheduleTrackingStart(alarm)
+                    Log.i(TAG, "Re-armed journey tracking start for ID=${alarm.id} at ${alarm.trackingStartAttemptEpochMs}")
+                }
             } else {
                 // Past alarm: if one-time, mark dismissed; if repeating, leave for periodic scheduler
                 if (alarm.isOneTime) {
-                    alarmRepository.dismissAlarm(alarm.id)
+                    // Check if journey was actively running and has now passed arrival by > 2 hours
+                    if (alarm.requiredArrivalEpochMs < nowEpochMs - 7200_000L &&
+                        alarm.status in setOf(
+                            AlarmEntity.STATUS_ACTIVE_TRACKING,
+                            AlarmEntity.STATUS_APPROACHING,
+                            AlarmEntity.STATUS_RECALCULATING,
+                            AlarmEntity.STATUS_TRACKING_PENDING
+                        )
+                    ) {
+                        alarmRepository.setAlarmStatus(alarm.id, AlarmEntity.STATUS_STOPPED)
+                        alarmRepository.setAlarmEnabled(alarm.id, false)
+                        Log.i(TAG, "Expired active journey ID=${alarm.id} marked as STOPPED.")
+                    } else {
+                        alarmRepository.dismissAlarm(alarm.id)
+                        Log.i(TAG, "Expired one-time alarm ID=${alarm.id} marked as dismissed.")
+                    }
                     expiredCount++
-                    Log.i(TAG, "Expired one-time alarm ID=${alarm.id} marked as dismissed.")
                 }
             }
         }

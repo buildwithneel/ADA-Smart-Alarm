@@ -79,3 +79,14 @@
   - 88/88 Android unit tests passing across calculation engine, state transitions, GPS jump protection, arrival confirmation, scheduler, and UI ViewModels.
   - 29/29 Backend pytest tests passing (`test_auth.py`, `test_sync.py`, `test_location_and_routing.py`).
   - `assembleDebug` APK build verified (`app-debug.apk`).
+
+### Milestone 8: Cross-Platform Mobile Expansion (Android Preservation + iOS Support + Shared TypeScript)
+- **Goal**: Expand ADA with an iOS-capable React Native mobile application, extract reusable pure TypeScript calculation and API contracts, while fully preserving the working native Android application.
+- **Status**: IN PROGRESS (Milestone A: Architecture & Audit Complete; Milestone B: Foundation In Progress)
+- **Deliverables**:
+  - Comprehensive Cross-Platform Architecture and Audit (`docs/CROSS_PLATFORM_ARCHITECTURE.md`, `docs/IOS_BACKGROUND_LOCATION.md`, `docs/MOBILE_DEVELOPMENT_SETUP.md`, `docs/MOBILE_TEST_PLAN.md`, `docs/IOS_RELEASE_CHECKLIST.md`).
+  - Pure TypeScript shared domain library in `packages/shared/` containing mathematical dynamic ETA engine, journey state machine, distance and polyline algorithms, and typed backend DTOs.
+  - Cross-platform React Native + Expo application in `apps/mobile/` with bundle ID `com.thinkx.ada.mobile` (Android & iOS).
+  - Native iOS background location capability with accurate `Info.plist` disclosures, two-step authorization, and `showsBackgroundLocationIndicator`.
+  - Integration with existing FastAPI backend (`/users/me`, `/destinations`, `/alarms`, `/routes`) using secure credential storage (`expo-secure-store`).
+  - Automated unit test suites covering shared domain math, state transitions, mobile view models, and API adapters.

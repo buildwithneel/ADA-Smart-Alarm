@@ -207,11 +207,59 @@ class JourneyLifecycleAndCoordinatorTest {
         assertEquals(JourneyAlertEvent.APPROACHING_ALERT, res1.alertEvent)
         assertEquals(JourneyState.APPROACHING, res1.journeyState)
 
-        // Second fix in threshold must NOT fire approaching alert again
+        // Second fix in threshold must NOT fire approaching alert again, and MUST retain APPROACHING state
         testCurrentTimeMs += 5000L
         val nearFix2 = nearFix.copy(timestampEpochMs = testCurrentTimeMs)
         val res2 = coordinator.processLocationFix(journey.id, nearFix2)
         assertNull("Approaching alert must be idempotent", res2.alertEvent)
+        assertEquals("Must retain APPROACHING state until confirmed arrival", JourneyState.APPROACHING, res2.journeyState)
+    }
+
+    // 21. TRACKING_PENDING is recognized as an active journey session in DAO
+    @Test
+    fun `test 21 - tracking pending is recognized as active tracking journey`() = runTest {
+        val pendingJourney = createTestJourney(status = AlarmEntity.STATUS_TRACKING_PENDING)
+        fakeDao.insertAlarm(pendingJourney)
+
+        val active = fakeDao.getActiveTrackingJourney()
+        assertNotNull("TRACKING_PENDING must be queryable as active journey to prevent double-start", active)
+        assertEquals(pendingJourney.id, active!!.id)
+    }
+
+    // 22. Degraded GPS preserves previous valid ETA and updates status to TRACKING_DEGRADED
+    @Test
+    fun `test 22 - degraded GPS preserves last valid route and reports TRACKING_DEGRADED`() = runTest {
+        val journey = createTestJourney(status = AlarmEntity.STATUS_ACTIVE_TRACKING)
+        fakeDao.insertAlarm(journey)
+
+        // Initial valid fix
+        val goodFix = JourneyLocationFix(
+            latitude = 23.0000,
+            longitude = 72.5000,
+            accuracyMeters = 10f,
+            timestampEpochMs = testCurrentTimeMs
+        )
+        val res1 = coordinator.processLocationFix(journey.id, goodFix)
+        assertEquals(JourneyState.ACTIVE_TRACKING, res1.journeyState)
+        val initialEta = res1.etaResult
+        assertNotNull(initialEta)
+
+        // Next fix has degraded accuracy (75m > 50m max)
+        testCurrentTimeMs += 10000L
+        val badFix = JourneyLocationFix(
+            latitude = 23.0010,
+            longitude = 72.5010,
+            accuracyMeters = 75f,
+            timestampEpochMs = testCurrentTimeMs
+        )
+        val res2 = coordinator.processLocationFix(journey.id, badFix)
+        assertEquals(JourneyState.TRACKING_DEGRADED, res2.journeyState)
+        assertNull("Degraded fix must not produce a newly calculated ETA", res2.etaResult)
+
+        // Room database must reflect TRACKING_DEGRADED
+        val persisted = fakeDao.getAlarmById(journey.id)
+        assertNotNull(persisted)
+        assertEquals(AlarmEntity.STATUS_TRACKING_DEGRADED, persisted!!.status)
     }
 }
 
@@ -347,7 +395,8 @@ private class FakeInMemoryAlarmDao : AlarmDao {
                 AlarmEntity.STATUS_ACTIVE_TRACKING,
                 AlarmEntity.STATUS_TRACKING_DEGRADED,
                 AlarmEntity.STATUS_RECALCULATING,
-                AlarmEntity.STATUS_APPROACHING
+                AlarmEntity.STATUS_APPROACHING,
+                AlarmEntity.STATUS_TRACKING_PENDING
             )
         }
 
@@ -358,7 +407,8 @@ private class FakeInMemoryAlarmDao : AlarmDao {
                     AlarmEntity.STATUS_ACTIVE_TRACKING,
                     AlarmEntity.STATUS_TRACKING_DEGRADED,
                     AlarmEntity.STATUS_RECALCULATING,
-                    AlarmEntity.STATUS_APPROACHING
+                    AlarmEntity.STATUS_APPROACHING,
+                    AlarmEntity.STATUS_TRACKING_PENDING
                 )
             }
         }

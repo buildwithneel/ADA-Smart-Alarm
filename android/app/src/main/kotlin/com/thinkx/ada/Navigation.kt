@@ -33,7 +33,8 @@ fun MainNavigation() {
                         factory = HomeViewModel.Factory(
                             alarmRepository = app.alarmRepository,
                             alarmScheduler = app.alarmScheduler,
-                            syncRepository = app.syncRepository
+                            syncRepository = app.syncRepository,
+                            journeyScheduler = app.journeyScheduler
                         )
                     ),
                     onCreateAlarmClick = { backStack.add(CreateEditAlarm()) },

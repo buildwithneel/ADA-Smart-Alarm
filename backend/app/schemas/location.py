@@ -87,6 +87,7 @@ class RouteResult(BaseSchema):
     traffic_duration_seconds: int  # Traffic-aware duration with current road conditions
     route_geometry: str  # Encoded polyline or coordinate string
     provider: str  # Which provider successfully resolved this ("google" | "mapbox")
+    is_traffic_aware: bool = Field(default=False, description="Whether live traffic conditions were factored in")
     timestamp: str  # ISO-8601 calculation timestamp
     travel_mode: str
     summary: RouteSummary

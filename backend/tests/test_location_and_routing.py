@@ -108,6 +108,7 @@ async def test_google_maps_provider_route_simulation():
     )
     assert isinstance(res, RouteResult)
     assert res.provider == "google"
+    assert res.is_traffic_aware is False
     assert res.distance_meters > 50000  # Gandhinagar to Changa > 50km
     assert res.duration_seconds > 0
     assert res.traffic_duration_seconds >= res.duration_seconds
@@ -137,6 +138,7 @@ async def test_mapbox_provider_route_simulation():
     )
     assert isinstance(res, RouteResult)
     assert res.provider == "mapbox"
+    assert res.is_traffic_aware is False
     assert res.traffic_duration_seconds >= res.duration_seconds
 
 
@@ -333,6 +335,7 @@ def test_routes_calculation_endpoint(client: TestClient):
     assert data["traffic_duration_seconds"] >= data["duration_seconds"]
     assert "route_geometry" in data
     assert data["provider"] in ["google", "mapbox"]
+    assert data["is_traffic_aware"] is False
 
 
 def test_routes_calculation_transit_fallback_endpoint(client: TestClient):

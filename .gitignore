@@ -10,6 +10,7 @@ Thumbs.db
 node_modules/
 dist/
 build/
+.vite/
 .npm
 .eslintcache
 # Preserve package-lock.json for reproducible npm ci in Docker & GitHub Actions

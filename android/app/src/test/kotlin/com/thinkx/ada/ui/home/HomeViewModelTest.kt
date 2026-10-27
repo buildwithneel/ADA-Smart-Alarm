@@ -148,10 +148,9 @@ class HomeViewModelTest {
         assertFalse(updated!!.isEnabled)
         val state = viewModel.uiState.first { it.userMessage != null }
         assertNotNull(state.userMessage)
-        assertTrue(state.userMessage!!.contains("passed", ignoreCase = true) || state.userMessage!!.contains("past", ignoreCase = true))
+        val msg = state.userMessage ?: ""
+        assertTrue(msg.contains("passed", ignoreCase = true) || msg.contains("past", ignoreCase = true))
     }
-
-
 
     @Test
     fun `deleting alarm cancels native scheduler and removes from database`() = runTest {
@@ -167,4 +166,51 @@ class HomeViewModelTest {
         assertTrue(alarmScheduler.cancelledAlarmIds.contains(alarm.id))
         assertNull(alarmRepository.getAlarmById(alarm.id))
     }
+
+    @Test
+    fun `toggleAlarm and deleteAlarm synchronize journeyScheduler tracking start and cancellation`() = runTest {
+        val fakeJourneyScheduler = FakeJourneyScheduler()
+        val customViewModel = HomeViewModel(
+            alarmRepository = alarmRepository,
+            alarmScheduler = alarmScheduler,
+            journeyScheduler = fakeJourneyScheduler
+        )
+
+        val alarm = createAlarm(id = "journey-test-1", isEnabled = false)
+        alarmRepository.saveAlarm(alarm)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // 1. Toggle ON -> should schedule tracking start
+        customViewModel.toggleAlarm(alarm, isEnabled = true)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue("Journey tracking must be scheduled when alarm enabled", fakeJourneyScheduler.scheduledJourneys.containsKey("journey-test-1"))
+
+        // 2. Toggle OFF -> should cancel tracking start
+        val enabledAlarm = alarmRepository.getAlarmById("journey-test-1")!!
+        customViewModel.toggleAlarm(enabledAlarm, isEnabled = false)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue("Journey tracking must be cancelled when alarm disabled", fakeJourneyScheduler.cancelledJourneyIds.contains("journey-test-1"))
+
+        // 3. Delete -> should cancel tracking start
+        customViewModel.deleteAlarm(enabledAlarm)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, fakeJourneyScheduler.cancelledJourneyIds.count { it == "journey-test-1" })
+    }
+}
+
+private class FakeJourneyScheduler : com.thinkx.ada.journey.scheduler.JourneyScheduler {
+    val scheduledJourneys = mutableMapOf<String, AlarmEntity>()
+    val cancelledJourneyIds = mutableListOf<String>()
+
+    override fun scheduleTrackingStart(journey: AlarmEntity): Boolean {
+        scheduledJourneys[journey.id] = journey
+        return true
+    }
+
+    override fun cancelTrackingStart(journeyId: String) {
+        scheduledJourneys.remove(journeyId)
+        cancelledJourneyIds.add(journeyId)
+    }
+
+    override fun canScheduleExactAlarms(): Boolean = true
 }

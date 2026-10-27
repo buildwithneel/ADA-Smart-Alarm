@@ -95,11 +95,53 @@ class JourneyTrackingService : Service(), LocationListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val action = intent?.action ?: return START_NOT_STICKY
+        if (intent == null) {
+            // Process recreation by OS (START_STICKY)
+            // Immediately post foreground notification to satisfy Android 12+/14+ requirements
+            val initialNotification = buildTrackingNotification(
+                statusText = "Restoring active journey tracking session..."
+            )
+            startForeground(NOTIFICATION_ID, initialNotification)
+
+            // Query Room for active journey
+            serviceScope.launch(Dispatchers.IO) {
+                try {
+                    val db = AdaDatabase.getInstance(applicationContext)
+                    val activeJourney = db.alarmDao().getActiveTrackingJourney()
+                    if (activeJourney != null) {
+                        activeJourneyId = activeJourney.id
+                        destinationName = activeJourney.destinationName
+                        journeyTitle = activeJourney.title
+                        val restoredNotification = buildTrackingNotification(
+                            statusText = "Tracking restored • Reconnecting GPS..."
+                        )
+                        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                        nm?.notify(NOTIFICATION_ID, restoredNotification)
+                        requestGpsUpdates()
+                        Log.i(TAG, "Restored active journey tracking for ID: ${activeJourney.id}")
+                    } else {
+                        Log.i(TAG, "No active journey found in database after process recreation; stopping service")
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error restoring journey session after recreation: ${e.message}", e)
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            }
+            return START_STICKY
+        }
+
+        val action = intent.action ?: return START_NOT_STICKY
 
         when (action) {
             ACTION_START_TRACKING -> {
                 val journeyId = intent.getStringExtra(EXTRA_JOURNEY_ID) ?: return START_NOT_STICKY
+                if (activeJourneyId != null && activeJourneyId != journeyId) {
+                    Log.i(TAG, "New journey $journeyId started while $activeJourneyId active; resetting updates")
+                    locationManager?.removeUpdates(this)
+                }
                 activeJourneyId = journeyId
                 destinationName = intent.getStringExtra(EXTRA_DESTINATION_NAME) ?: "Destination"
                 journeyTitle = intent.getStringExtra(EXTRA_JOURNEY_TITLE) ?: "Trip to $destinationName"
@@ -197,14 +239,24 @@ class JourneyTrackingService : Service(), LocationListener {
 
     private fun handleTrackingUpdate(result: TrackingUpdateResult) {
         val eta = result.etaResult
-        val statusText = if (eta != null) {
-            val formatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
-            val etaFormatted = formatter.format(Instant.ofEpochMilli(eta.predictedArrivalEpochMs))
-            val distKm = "%.1f".format(result.remainingDistanceMeters / 1000.0)
-            val trafficLabel = if (eta.isTrafficAware) "Traffic-aware" else "Estimate"
-            "ETA: $etaFormatted • $distKm km • $trafficLabel"
-        } else {
-            "Tracking active • Calculating route..."
+        val statusText = when {
+            result.journeyState == com.thinkx.ada.domain.journey.model.JourneyState.TRACKING_DEGRADED -> {
+                val distKm = "%.1f".format(result.remainingDistanceMeters / 1000.0)
+                "GPS degraded • Last distance: $distKm km • Waiting for fix..."
+            }
+            result.journeyState == com.thinkx.ada.domain.journey.model.JourneyState.RECALCULATING -> {
+                "Route deviation detected • Recalculating route..."
+            }
+            eta != null -> {
+                val formatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
+                val etaFormatted = formatter.format(Instant.ofEpochMilli(eta.predictedArrivalEpochMs))
+                val distKm = "%.1f".format(result.remainingDistanceMeters / 1000.0)
+                val trafficLabel = if (eta.isTrafficAware) "Traffic-aware" else "Estimate"
+                "ETA: $etaFormatted • $distKm km • $trafficLabel"
+            }
+            else -> {
+                "Tracking active • Calculating route..."
+            }
         }
 
         // Update foreground notification
@@ -363,6 +415,37 @@ class JourneyTrackingService : Service(), LocationListener {
     // LocationListener stubs for backwards compatibility with older Android versions
     @Deprecated("Deprecated in Java")
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-    override fun onProviderEnabled(provider: String) {}
-    override fun onProviderDisabled(provider: String) {}
+
+    override fun onProviderEnabled(provider: String) {
+        Log.i(TAG, "Location provider '$provider' re-enabled")
+        val notification = buildTrackingNotification(
+            statusText = "Location provider re-enabled • Acquiring GPS fix..."
+        )
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        nm?.notify(NOTIFICATION_ID, notification)
+        requestGpsUpdates()
+    }
+
+    override fun onProviderDisabled(provider: String) {
+        Log.w(TAG, "Location provider '$provider' disabled by user")
+        val notification = buildTrackingNotification(
+            statusText = "Location services disabled • Please re-enable GPS"
+        )
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        nm?.notify(NOTIFICATION_ID, notification)
+
+        val journeyId = activeJourneyId ?: return
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val db = AdaDatabase.getInstance(applicationContext)
+                db.alarmDao().updateAlarmStatus(
+                    journeyId,
+                    AlarmEntity.STATUS_TRACKING_DEGRADED,
+                    System.currentTimeMillis()
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to persist TRACKING_DEGRADED state: ${e.message}")
+            }
+        }
+    }
 }
