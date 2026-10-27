@@ -1,7 +1,3 @@
-<div align="center">
-
-<img src="docs/assets/logo.png" alt="ADA Smart Alarm Logo" width="160" height="160" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);" />
-
 # ADA Smart Alarm
 ### Destination-Aware Commute Alarm & Dynamic Journey Tracking Platform
 
