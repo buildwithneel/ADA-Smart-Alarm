@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from app.core.config import settings
 import app.core.database
 
 
