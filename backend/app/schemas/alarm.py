@@ -28,6 +28,7 @@ class AlarmBase(BaseSchema):
     timezone: str = Field(default="Asia/Kolkata", description="IANA timezone identifier")
     origin_lat: Optional[float] = Field(None, ge=-90.0, le=90.0, description="Optional custom origin latitude")
     origin_lng: Optional[float] = Field(None, ge=-180.0, le=180.0, description="Optional custom origin longitude")
+    calendar_event_id: Optional[str] = Field(None, max_length=255, description="Associated calendar event identifier")
 
 
 class AlarmCreate(AlarmBase):
@@ -227,7 +228,7 @@ class AlarmResponse(AlarmBase):
     # Step 10: Weather + Calendar Context
     weather_buffer_minutes: Optional[int] = 0
     weather_condition_snapshot: Optional[str] = None
-    calendar_event_id: Optional[uuid.UUID] = None
+    calendar_event_id: Optional[str] = None
 
     # Associated entities
     destination: Optional[DestinationResponse] = None
