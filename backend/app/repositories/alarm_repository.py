@@ -189,6 +189,8 @@ class AlarmRepository(BaseRepository[Alarm]):
         self.db.refresh(alarm)
         return alarm
 
+    def get_active_alarms_for_evaluation(self, limit: int = 500) -> list[Alarm]:
+        """Retrieve active scheduled alarms for evaluation and expiration checks."""
         stmt = (
             select(Alarm)
             .options(
