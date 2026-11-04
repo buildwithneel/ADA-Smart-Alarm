@@ -603,6 +603,45 @@ class AlarmService(BaseService):
                 candidate += timedelta(days=1)
             return candidate
 
+        if sched.schedule_type == ScheduleType.CUSTOM:
+            if not sched.repeat_days:
+                return None
+
+            day_map = {
+                "MON": 0,
+                "TUE": 1,
+                "WED": 2,
+                "THU": 3,
+                "FRI": 4,
+                "SAT": 5,
+                "SUN": 6,
+            }
+            target_weekdays = set()
+            for d in sched.repeat_days.split(","):
+                clean = d.strip().upper()
+                if clean in day_map:
+                    target_weekdays.add(day_map[clean])
+
+            if not target_weekdays:
+                return None
+
+            for day_offset in range(8):
+                candidate_date = base_now.date() + timedelta(days=day_offset)
+                if candidate_date.weekday() in target_weekdays:
+                    candidate = datetime(
+                        candidate_date.year,
+                        candidate_date.month,
+                        candidate_date.day,
+                        alarm.arrival_time.hour,
+                        alarm.arrival_time.minute,
+                        alarm.arrival_time.second,
+                        tzinfo=tz,
+                    )
+                    if candidate > base_now:
+                        return candidate
+
+            return None
+
         return None
 
     # ------------------------------------------------------------------
