@@ -108,7 +108,7 @@ export class LocationManager {
         message: "Discarded unrealistic GPS velocity jump",
       };
     }
-    this.previousFix = currentFix;
+    const lastFix = this.previousFix;
 
     // 3. Route deviation check
     const isDeviated =
@@ -120,10 +120,11 @@ export class LocationManager {
     const shouldRecalculate = DynamicEtaEngine.shouldRecalculateRoute(
       isDeviated,
       this.lastRequestEpochMs,
-      this.previousFix,
+      lastFix,
       currentFix,
       now
     );
+    this.previousFix = currentFix;
 
     let etaResult: DynamicEtaResult;
 
