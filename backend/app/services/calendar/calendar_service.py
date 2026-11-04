@@ -333,7 +333,7 @@ class CalendarService:
         """
         event = self.calendar_repo.get_event(event_id)
         if not event:
-            raise NotFoundException("Calendar event not found.")
+            raise NotFoundException("CalendarEvent", event_id)
         if event.user_id != user_id:
             raise ForbiddenException("You do not own this calendar event.")
 
@@ -342,18 +342,19 @@ class CalendarService:
         if destination_id:
             dest = self.destination_repo.get(destination_id)
             if not dest or dest.user_id != user_id:
-                raise NotFoundException("Selected destination not found or not owned by user.")
+                raise NotFoundException("Destination", destination_id)
         elif event.resolved_latitude is not None and event.resolved_longitude is not None:
             # Create a destination record from the resolved event location
-            dest = self.destination_repo.create(
+            new_dest = Destination(
                 user_id=user_id,
                 name=event.location or event.title,
                 latitude=event.resolved_latitude,
                 longitude=event.resolved_longitude,
-                address=event.location,
+                address=event.location or event.title or "Calendar Location",
                 type=DestinationType.CUSTOM,
                 provider="calendar",
             )
+            dest = self.destination_repo.create(new_dest)
         else:
             raise ValidationException(
                 "Event has no resolved coordinates. Please specify a destination."
