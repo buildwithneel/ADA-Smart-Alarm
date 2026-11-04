@@ -58,12 +58,20 @@ class UserService(BaseService):
             {
                 "id": str(a.id),
                 "title": a.title,
-                "target_arrival_time": a.target_arrival_time.isoformat() if a.target_arrival_time else None,
+                "target_arrival_time": (
+                    a.planned_arrival_time.isoformat()
+                    if getattr(a, "planned_arrival_time", None)
+                    else (a.arrival_time.isoformat() if getattr(a, "arrival_time", None) else None)
+                ),
                 "calculated_wake_time": a.calculated_wake_time.isoformat() if a.calculated_wake_time else None,
                 "calculated_leave_time": a.calculated_leave_time.isoformat() if a.calculated_leave_time else None,
                 "status": a.status.value if hasattr(a.status, "value") else str(a.status),
-                "is_active": a.is_active,
-                "transport_mode": a.transport_mode.value if hasattr(a.transport_mode, "value") else str(a.transport_mode),
+                "is_active": getattr(a, "enabled", True),
+                "transport_mode": (
+                    a.transportation_mode.value
+                    if hasattr(getattr(a, "transportation_mode", None), "value")
+                    else str(getattr(a, "transportation_mode", "driving"))
+                ),
                 "created_at": a.created_at.isoformat() if a.created_at else None,
             }
             for a in getattr(user, "alarms", [])
