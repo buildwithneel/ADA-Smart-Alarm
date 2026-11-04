@@ -369,21 +369,41 @@ def reconcile_missed_alarms() -> dict:
         now = datetime.now(timezone.utc)
         stale_cutoff = now - timedelta(minutes=30)
 
-        # 1. Reconcile past one-time alarms
+        from sqlalchemy.orm import joinedload
+        from app.models.schedule import AlarmSchedule, ScheduleType
+
+        alarm_repo = AlarmRepository(db)
+        dest_repo = DestinationRepository(db)
+        alarm_service = AlarmService(alarm_repo=alarm_repo, destination_repo=dest_repo)
+
+        # 1. Reconcile past alarms missed during downtime/outage
         past_active_alarms = (
             db.query(Alarm)
+            .options(joinedload(Alarm.schedule))
             .filter(
-                Alarm.is_recurring.is_(False),
                 Alarm.status.in_([AlarmStatus.ACTIVE, AlarmStatus.SCHEDULED]),
-                Alarm.target_arrival_time < now,
+                Alarm.planned_arrival_time.isnot(None),
+                Alarm.planned_arrival_time < now,
             )
             .all()
         )
         alarms_reconciled = 0
         for alarm in past_active_alarms:
-            alarm.status = AlarmStatus.COMPLETED
-            alarm.is_active = False
-            alarms_reconciled += 1
+            is_recurring = (
+                alarm.schedule is not None
+                and alarm.schedule.schedule_type in (ScheduleType.DAILY, ScheduleType.WEEKDAYS, ScheduleType.CUSTOM)
+                and alarm.schedule.specific_date is None
+            )
+            if not is_recurring:
+                alarm.status = AlarmStatus.COMPLETED
+                alarm.enabled = False
+                alarms_reconciled += 1
+            else:
+                next_occ = alarm_service.determine_next_occurrence(alarm, from_dt=now)
+                if next_occ:
+                    alarm.planned_arrival_time = next_occ
+                alarm.status = AlarmStatus.SCHEDULED
+                alarms_reconciled += 1
 
         # 2. Cancel stale pending notifications (avoid waking user hours late after downtime)
         stale_notifications = (
